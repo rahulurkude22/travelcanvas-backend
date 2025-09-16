@@ -1,8 +1,16 @@
 import {
+  CACHE_MANAGER,
+  CacheInterceptor,
+  CacheKey,
+  CacheTTL,
+} from '@nestjs/cache-manager';
+import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  UseInterceptors,
 } from '@nestjs/common';
+import { type Cache } from 'cache-manager';
 import { and, asc, desc, eq, ilike, or, sql, SQL } from 'drizzle-orm';
 import { itineraries, itineraryDays } from 'drizzle/migrations/schema';
 import { type Dbtype } from 'src/database/database.module';
@@ -11,8 +19,12 @@ import { ItinerariesSearchDto, SortOption } from './dto/itineraries-search.dto';
 import { UpdateItineraryDto } from './dto/update-itinerary.dto';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class ItinerariesService {
-  constructor(@Inject('DB') private db: Dbtype) {}
+  constructor(
+    @Inject('DB') private db: Dbtype,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async create(createItineraryDto: CreateItineraryDto) {
     try {
@@ -44,6 +56,8 @@ export class ItinerariesService {
     }
   }
 
+  @CacheKey('itineraries_list')
+  @CacheTTL(120) // cache 2 minutes
   async findAll(queryParams: ItinerariesSearchDto) {
     try {
       const { search, category, sort, page, limit, my_itineraries } =

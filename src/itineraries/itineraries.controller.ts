@@ -42,6 +42,6 @@ export class ItinerariesController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.itinerariesService.remove(id);
+    return this.itinerariesService.remove(+id);
   }
 }

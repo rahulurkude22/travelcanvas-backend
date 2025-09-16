@@ -32,7 +32,6 @@ export class BucketListService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
-    return 'This action adds a new bucketList';
   }
 
   async findAll() {
