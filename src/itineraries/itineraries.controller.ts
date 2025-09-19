@@ -1,17 +1,17 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
-import { ItinerariesService } from './itineraries.service';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
-import { UpdateItineraryDto } from './dto/update-itinerary.dto';
 import { ItinerariesSearchDto } from './dto/itineraries-search.dto';
+import { UpdateItineraryDto } from './dto/update-itinerary.dto';
+import { ItinerariesService } from './itineraries.service';
 
 @Controller('/itineraries')
 export class ItinerariesController {

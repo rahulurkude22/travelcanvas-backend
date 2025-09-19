@@ -1,4 +1,3 @@
-import fastifyCompression from '@fastify/compress';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
@@ -6,7 +5,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
-import { fastifyHelmet } from '@fastify/helmet';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -30,8 +29,8 @@ async function bootstrap() {
 
   app.useGlobalPipes(validationPipe);
 
-  await app.register(fastifyCompression, { global: true });
-  await app.register(fastifyHelmet);
+  // await app.register(fastifyCompression, { global: true });
+  // await app.register(fastifyHelmet);
   await app.listen(process.env.PORT ?? 5000);
 }
 
