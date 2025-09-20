@@ -96,7 +96,7 @@ export class ItinerariesService {
   async findOne(id: string) {
     try {
       const data = await this.itinerariesDB.getSingleItinerary(id);
-      return { success: true, data };
+      return { success: true, data: data };
     } catch (error) {
       return new InternalServerErrorException(error.message);
     }

@@ -64,8 +64,9 @@ export class ItinerariesDBService {
   }
 
   getSingleItinerary(itineraryId: string) {
-    return this.db.query.itineraries.findFirst({
-      where: eq(itineraries.id, itineraryId),
-    });
+    return this.db
+      .select()
+      .from(itineraries)
+      .where(eq(itineraries.id, itineraryId));
   }
 }
