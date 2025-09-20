@@ -25,12 +25,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
   validate(payload: KeycloakJwtPayload) {
-    return {
-      sub: payload.sub,
-      username: payload.preferred_username,
-      realmRoles: payload.realm_access?.roles || [],
-      resourceRoles: payload.resource_access || {},
-      scopes: (payload.scope || '').split(' '), // OAuth2 scopes
-    };
+    return payload;
   }
 }

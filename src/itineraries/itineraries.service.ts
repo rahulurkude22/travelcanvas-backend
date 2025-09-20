@@ -1,14 +1,8 @@
-import {
-  CACHE_MANAGER,
-  CacheInterceptor,
-  CacheKey,
-  CacheTTL,
-} from '@nestjs/cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   Inject,
   Injectable,
   InternalServerErrorException,
-  UseInterceptors,
 } from '@nestjs/common';
 import { type Cache } from 'cache-manager';
 import { and, asc, desc, eq, ilike, or, sql, SQL } from 'drizzle-orm';
@@ -17,38 +11,31 @@ import { type Dbtype } from 'src/database/database.module';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
 import { ItinerariesSearchDto, SortOption } from './dto/itineraries-search.dto';
 import { UpdateItineraryDto } from './dto/update-itinerary.dto';
+import { ItinerariesDBService } from './itineraries.db.service';
+import {
+  invalidateItinerariesCache,
+  ITINERARY_CACHE_KEY,
+} from './itineraries.util';
 
 @Injectable()
-@UseInterceptors(CacheInterceptor)
 export class ItinerariesService {
   constructor(
     @Inject('DB') private db: Dbtype,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly itinerariesDB: ItinerariesDBService,
   ) {}
 
-  async create(createItineraryDto: CreateItineraryDto) {
+  async create(userId: string, createItineraryDto: CreateItineraryDto) {
     try {
-      const { title, description, destination, duration_days } =
-        createItineraryDto;
-
-      const [newItineraries] = await this.db
-        .insert(itineraries)
-        .values({
-          title,
-          description,
-          destination,
-          durationDays: duration_days,
-        })
-        .returning({ id: itineraries.id });
-
-      await this.db.insert(itineraryDays).values({
-        itineraryId: newItineraries.id,
-        dayNumber: 1,
-        title: 'Day 1',
-        description: '',
-        activities: [],
-        createdAt: JSON.stringify(sql`NOW()`),
-      });
+      const newItineraries = await this.itinerariesDB.addItineraries(
+        userId,
+        createItineraryDto,
+      );
+      if (newItineraries) {
+        await this.cacheManager.del(
+          `${ITINERARY_CACHE_KEY}:/api/v1/itineraries/*`,
+        );
+      }
 
       return { success: true, data: newItineraries };
     } catch (error) {
@@ -56,16 +43,22 @@ export class ItinerariesService {
     }
   }
 
-  @CacheKey('itineraries_list')
-  @CacheTTL(120) // cache 2 minutes
-  async findAll(queryParams: ItinerariesSearchDto) {
+  async findAll(userId: string, queryParams: ItinerariesSearchDto) {
     try {
       const { search, category, sort, page, limit, my_itineraries } =
         queryParams;
-      console.log(my_itineraries);
-      let orderBy: SQL<unknown> | undefined = undefined;
+
+      let orderBy: SQL<any> | undefined = undefined;
+
       const conditions: SQL[] = [];
       const offset = (parseInt(page) - 1) * parseInt(limit);
+
+      if (my_itineraries && userId) {
+        conditions.push(eq(itineraries.userId, userId));
+      } else {
+        conditions.push(eq(itineraries.isPublic, true));
+      }
+
       if (search) {
         conditions.push(
           or(
@@ -83,24 +76,17 @@ export class ItinerariesService {
           .replace(/\s+/g, '-');
         conditions.push(eq(itineraries.category, normalizedCategory));
       }
-      if (my_itineraries) {
-        console.log(typeof my_itineraries);
-        conditions.push(
-          eq(itineraries.id, '43be3b76-faeb-4946-bf9b-68fd4022c10f'),
-        );
-      }
 
       if (sort) {
         orderBy = this.getSortExpression(sort);
       }
 
-      const data = await this.db.query.itineraries.findMany({
-        where: conditions.length ? and(...conditions) : undefined,
+      const data = await this.itinerariesDB.getAllItineraries({
+        conditions,
         limit: +limit,
         offset,
-        orderBy,
+        orderBy: orderBy,
       });
-
       return { success: true, data };
     } catch (error) {
       return new InternalServerErrorException(error.message);
@@ -109,15 +95,11 @@ export class ItinerariesService {
 
   async findOne(id: string) {
     try {
-      const data = await this.db.query.itineraries.findFirst({
-        where: eq(itineraries.id, id),
-      });
-
+      const data = await this.itinerariesDB.getSingleItinerary(id);
       return { success: true, data };
     } catch (error) {
       return new InternalServerErrorException(error.message);
     }
-    return {};
   }
 
   async update(id: string, updateItineraryDto: UpdateItineraryDto) {
@@ -168,11 +150,11 @@ export class ItinerariesService {
         }
       }
 
+      await invalidateItinerariesCache(this.cacheManager, id);
       return { success: true };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
-    return {};
   }
 
   remove(id: number) {

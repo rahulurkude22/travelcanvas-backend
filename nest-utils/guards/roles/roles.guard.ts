@@ -7,19 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { ROLES_KEY } from 'nest-utils/decorators/roles/roles.decorator';
-
-interface JwtUser {
-  sub: string;
-  resourceRoles: Record<string, { roles: string[] }>;
-  scopes: string[];
-  username: string;
-  realmRoles?: string[];
-}
-
-interface JwtFastifyRequest {
-  user: JwtUser;
-}
-
+import { KeycloakJwtPayload } from 'types/canvas';
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -33,8 +21,10 @@ export class RolesGuard implements CanActivate {
 
     if (!requiredRoles) return true;
 
-    const { user } = context.switchToHttp().getRequest<JwtFastifyRequest>();
-    const userRoles = user.realmRoles || [];
+    const { realm_access } = context
+      .switchToHttp()
+      .getRequest<KeycloakJwtPayload>();
+    const userRoles = realm_access.roles || [];
 
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
     if (!hasRole) {
