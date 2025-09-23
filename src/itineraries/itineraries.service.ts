@@ -5,8 +5,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { type Cache } from 'cache-manager';
-import { and, asc, desc, eq, ilike, or, sql, SQL } from 'drizzle-orm';
-import { itineraries, itineraryDays } from 'drizzle/migrations/schema';
+import { asc, desc, eq, ilike, or, sql, SQL } from 'drizzle-orm';
+import { itineraries } from 'drizzle/migrations/schema';
 import { type Dbtype } from 'src/database/database.module';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
 import { ItinerariesSearchDto, SortOption } from './dto/itineraries-search.dto';
@@ -102,54 +102,13 @@ export class ItinerariesService {
     }
   }
 
-  async update(id: string, updateItineraryDto: UpdateItineraryDto) {
+  async update(
+    userId: string,
+    id: string,
+    updateItineraryDto: UpdateItineraryDto,
+  ) {
     try {
-      await this.db
-        .update(itineraries)
-        .set({
-          title: updateItineraryDto.title,
-          destination: updateItineraryDto.description,
-          durationDays: updateItineraryDto.duration_days,
-          canvasData: JSON.stringify(updateItineraryDto.canvasData),
-          updatedAt: sql`NOW()`,
-        })
-        .where(
-          and(
-            eq(itineraries.id, id),
-            eq(itineraries.userId, process.env.USER_ID!),
-          ),
-        );
-
-      if (updateItineraryDto.days) {
-        for (const day of updateItineraryDto.days) {
-          if (day.id && !day.id.startsWith('day-')) {
-            await this.db
-              .update(itineraryDays)
-              .set({
-                dayNumber: day.day_number,
-                title: day.title,
-                description: day.description,
-                activities: JSON.stringify(day.activities),
-                updatedAt: sql`NOW()`,
-              })
-              .where(
-                and(
-                  eq(itineraryDays.id, day.id),
-                  eq(itineraryDays.itineraryId, id),
-                ),
-              );
-          } else {
-            await this.db.insert(itineraryDays).values({
-              id: id,
-              dayNumber: day.day_number,
-              title: day.title,
-              description: day.description,
-              activities: JSON.stringify(day.activities),
-            });
-          }
-        }
-      }
-
+      await this.itinerariesDB.updateItinerary(userId, id, updateItineraryDto);
       await invalidateItinerariesCache(this.cacheManager, id);
       return { success: true };
     } catch (error) {

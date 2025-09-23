@@ -3,6 +3,7 @@ import { and, eq, SQL } from 'drizzle-orm';
 import { itineraries, itineraryDays } from 'drizzle/migrations/schema';
 import { type Dbtype } from 'src/database/database.module';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
+import { UpdateItineraryDto } from './dto/update-itinerary.dto';
 
 type Column = keyof typeof itineraries;
 
@@ -68,5 +69,54 @@ export class ItinerariesDBService {
       .select()
       .from(itineraries)
       .where(eq(itineraries.id, itineraryId));
+  }
+
+  async updateItinerary(
+    userId: string,
+    itineraryId: string,
+    updateOptions: UpdateItineraryDto,
+  ) {
+    return await this.db.transaction(async (tx) => {
+      await tx
+        .update(itineraries)
+        .set({
+          title: updateOptions.title,
+          destination: updateOptions.description,
+          durationDays: updateOptions.duration_days,
+          canvasData: JSON.stringify(updateOptions.canvasData),
+        })
+        .where(
+          and(eq(itineraries.id, itineraryId), eq(itineraries.userId, userId)),
+        );
+
+      if (updateOptions.days) {
+        for (const day of updateOptions.days) {
+          if (day.id && !day.id.startsWith('day-')) {
+            await this.db
+              .update(itineraryDays)
+              .set({
+                dayNumber: day.day_number,
+                title: day.title,
+                description: day.description,
+                activities: JSON.stringify(day.activities),
+              })
+              .where(
+                and(
+                  eq(itineraryDays.id, day.id),
+                  eq(itineraryDays.itineraryId, itineraryId),
+                ),
+              );
+          } else {
+            await this.db.insert(itineraryDays).values({
+              id: itineraryId,
+              dayNumber: day.day_number,
+              title: day.title,
+              description: day.description,
+              activities: JSON.stringify(day.activities),
+            });
+          }
+        }
+      }
+    });
   }
 }

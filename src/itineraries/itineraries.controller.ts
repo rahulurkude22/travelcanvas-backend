@@ -15,7 +15,6 @@ import { UpdateItineraryDto } from './dto/update-itinerary.dto';
 import { ItinerariesService } from './itineraries.service';
 import { Public } from 'nest-utils/decorators/public/public.decorator';
 
-@Public()
 @Controller('/itineraries')
 export class ItinerariesController {
   constructor(private readonly itinerariesService: ItinerariesService) {}
@@ -28,6 +27,7 @@ export class ItinerariesController {
     return this.itinerariesService.create(userId, createItineraryDto);
   }
 
+  @Public()
   @Get()
   findAll(
     @User('sub') userId: string,
@@ -45,10 +45,11 @@ export class ItinerariesController {
 
   @Patch(':id')
   update(
+    @User('sub') userId: string,
     @Param('id') id: string,
     @Body() updateItineraryDto: UpdateItineraryDto,
   ) {
-    return this.itinerariesService.update(id, updateItineraryDto);
+    return this.itinerariesService.update(userId, id, updateItineraryDto);
   }
 
   @Delete(':id')
