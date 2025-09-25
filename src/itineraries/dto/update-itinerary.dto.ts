@@ -12,8 +12,5 @@ interface day {
 
 export class UpdateItineraryDto extends PartialType(CreateItineraryDto) {
   @IsOptional()
-  canvasData: [any];
-
-  @IsOptional()
   days: [day];
 }

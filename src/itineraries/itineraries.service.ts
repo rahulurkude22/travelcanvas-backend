@@ -3,9 +3,20 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { type Cache } from 'cache-manager';
-import { asc, desc, eq, ilike, or, sql, SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  isNotNull,
+  or,
+  sql,
+  SQL,
+} from 'drizzle-orm';
 import { itineraries } from 'drizzle/migrations/schema';
 import { type Dbtype } from 'src/database/database.module';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
@@ -39,14 +50,19 @@ export class ItinerariesService {
 
       return { success: true, data: newItineraries };
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      throw new InternalServerErrorException(error);
     }
   }
 
-  async findAll(userId: string, queryParams: ItinerariesSearchDto) {
+  async findAll(userId: string | null, queryParams: ItinerariesSearchDto) {
     try {
       const { search, category, sort, page, limit, my_itineraries } =
         queryParams;
+
+      // console.log({ userId });
+      if (my_itineraries && !userId) {
+        return new UnauthorizedException('Unauthorized Access.');
+      }
 
       let orderBy: SQL<any> | undefined = undefined;
 
@@ -54,7 +70,13 @@ export class ItinerariesService {
       const offset = (parseInt(page) - 1) * parseInt(limit);
 
       if (my_itineraries && userId) {
-        conditions.push(eq(itineraries.userId, userId));
+        const userCondition = and(
+          userId ? eq(itineraries.userId, userId) : undefined,
+          isNotNull(itineraries.userId),
+        );
+        if (userCondition) {
+          conditions.push(userCondition);
+        }
       } else {
         conditions.push(eq(itineraries.isPublic, true));
       }
@@ -89,7 +111,7 @@ export class ItinerariesService {
       });
       return { success: true, data };
     } catch (error) {
-      return new InternalServerErrorException(error.message);
+      return new InternalServerErrorException(error.response.data.errorMessage);
     }
   }
 

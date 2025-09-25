@@ -1,4 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { and, eq, SQL } from 'drizzle-orm';
 import { itineraries, itineraryDays } from 'drizzle/migrations/schema';
 import { type Dbtype } from 'src/database/database.module';
@@ -27,13 +31,13 @@ export class ItinerariesDBService {
           title: addOptions.title,
           description: addOptions.description,
           destination: addOptions.destination,
-          durationDays: addOptions.duration_days,
+          durationDays: addOptions.durationDays,
+          travelers: addOptions.travelers,
+          travelType: addOptions.travelType,
         })
         .returning();
-
       if (!newItineraries) {
-        tx.rollback();
-        return;
+        throw new InternalServerErrorException('Failed to create itinerary');
       }
 
       return await tx
@@ -43,7 +47,7 @@ export class ItinerariesDBService {
           dayNumber: 1,
           title: 'Day 1',
           description: '',
-          activities: [],
+
           // createdAt: JSON.stringify(sql`NOW()`),
         })
         .returning();
@@ -82,8 +86,8 @@ export class ItinerariesDBService {
         .set({
           title: updateOptions.title,
           destination: updateOptions.description,
-          durationDays: updateOptions.duration_days,
-          canvasData: JSON.stringify(updateOptions.canvasData),
+          durationDays: updateOptions.durationDays,
+          canvasData: updateOptions.canvasData,
         })
         .where(
           and(eq(itineraries.id, itineraryId), eq(itineraries.userId, userId)),

@@ -1,7 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Public } from 'nest-utils/decorators/public/public.decorator';
 import { AuthService } from './auth.service';
 import { LoginBodyDto } from './dto/login-body.dto';
-import { Public } from 'nest-utils/decorators/public/public.decorator';
 import { RegisterBodyDto } from './dto/register-body.dto';
 
 @Public()
@@ -9,13 +17,26 @@ import { RegisterBodyDto } from './dto/register-body.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('login')
-  login(@Body() body: LoginBodyDto) {
+  @Post('signin')
+  signIn(@Body() body: LoginBodyDto) {
     return this.authService.login(body);
   }
 
-  @Post('register')
-  register(@Body() body: RegisterBodyDto) {
+  @Post('signup')
+  signUp(@Body() body: RegisterBodyDto) {
     return this.authService.register(body);
+  }
+
+  @Get('signout/:id')
+  signOut(
+    @Headers('authorization') authHeader: string,
+    @Param('id') id: string,
+  ) {
+    if (!authHeader) {
+      throw new UnauthorizedException('No authorization header provided');
+    }
+
+    const accessToken = authHeader.replace('Bearer ', '');
+    return this.authService.logout(id, accessToken);
   }
 }

@@ -1,7 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from 'nest-utils/guards/auth/jwt-auth.guard';
 import { RolesGuard } from 'nest-utils/guards/roles/roles.guard';
 import { AppController } from './app.controller';
@@ -13,11 +13,11 @@ import { EarningsModule } from './creator/earnings/earnings.module';
 import { StatsModule } from './creator/stats/stats.module';
 import { DatabaseModule } from './database/database.module';
 import { ItinerariesModule } from './itineraries/itineraries.module';
-import { QueryCacheInterceptor } from './itineraries/query-cache.interceptor';
 import { MarketPlaceModule } from './market-place/market-place.module';
 import { QuoteRequestsModule } from './quote-requests/quote-requests.module';
 import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.module';
 import { TemplatesModule } from './templates/templates.module';
+import { DictionaryModule } from './dictionary/dictionary.module';
 
 @Module({
   imports: [
@@ -37,14 +37,15 @@ import { TemplatesModule } from './templates/templates.module';
     QuoteRequestsModule,
     EarningsModule,
     StatsModule,
+    DictionaryModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: QueryCacheInterceptor,
-    },
+    // {
+    //   provide: APP_INTERCEPTOR,
+    //   useClass: QueryCacheInterceptor,
+    // },
     JwtStrategy,
     {
       provide: APP_GUARD,

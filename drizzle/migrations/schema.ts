@@ -27,7 +27,6 @@ export const userProfiles = pgTable(
       .primaryKey()
       .notNull(),
     email: varchar({ length: 255 }).notNull(),
-    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
     fullName: varchar('full_name', { length: 255 }),
     avatarUrl: text('avatar_url'),
     role: varchar({ length: 20 }).default('traveler'),
@@ -104,6 +103,8 @@ export const itineraries = pgTable(
     createdBy: varchar('created_by', { length: 100 }),
     isFeatured: boolean('is_featured'),
     category: varchar({ length: 100 }),
+    travelers: integer('travelers'),
+    travelType: varchar('travel_type', { length: 255 }),
   },
   (table) => [
     index('idx_itineraries_is_public').using(

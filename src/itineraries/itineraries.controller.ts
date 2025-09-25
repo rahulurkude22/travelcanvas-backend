@@ -30,9 +30,10 @@ export class ItinerariesController {
   @Public()
   @Get()
   findAll(
-    @User('sub') userId: string,
+    @User('sub') userId: string | null,
     @Query() queryParams: ItinerariesSearchDto,
   ) {
+    console.log({ userId });
     console.log(`findAll method executed${Date.now()}`);
     return this.itinerariesService.findAll(userId, queryParams);
   }
